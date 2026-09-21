@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Maze Shooter</title>
+<style>
+html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 100%; height: 100%; font-family: monospace; }
+#game { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+/* ---- Centered, larger HUD ---- */
+#hud { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; color: #fff; text-shadow: 0 0 6px #000; }
+.hud-row { display: flex; align-items: center; gap: 18px; }
+.hp { display: flex; flex-direction: column; gap: 4px; width: 280px; }
+.hp-top { display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; letter-spacing: 1px; }
+.hpbar-outer { height: 16px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.5); border-radius: 8px; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,0.6); }
+#hud-hpbar { height: 100%; width: 100%; background: linear-gradient(90deg,#3dff8a,#b6ff5e); transition: width 0.15s ease-out; }
+.weapon { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wname { font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #9fe8ff; }
+.ammo { font-size: 30px; font-weight: bold; }
+.slots { display: flex; gap: 10px; }
+.slot { width: 52px; height: 30px; border: 2px solid rgba(255,255,255,0.35); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; background: rgba(0,0,0,0.4); transition: all 0.12s; }
+.slot.active { border-color: #9fe8ff; background: rgba(60,160,255,0.35); box-shadow: 0 0 10px rgba(120,200,255,0.7); color: #fff; }
+.forces { display: flex; gap: 16px; }
+.force { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 150px; }
+.force .lab { font-size: 13px; letter-spacing: 1px; opacity: 0.9; }
+.force .cd { font-size: 12px; opacity: 0.75; }
+.cdbar-outer { width: 100%; height: 8px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.35); border-radius: 4px; overflow: hidden; }
+#hud-pushbar { height: 100%; width: 100%; background: #7fd0ff; }
+#hud-lightbar { height: 100%; width: 100%; background: #c79bff; }
+.stats { display: flex; gap: 22px; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+.stat { display: flex; align-items: center; gap: 6px; }
+.stat .val { font-size: 22px; }
+#hud-run { display: none; font-size: 15px; font-weight: bold; color: #ffe08a; letter-spacing: 2px; }
+#crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 22px; z-index: 10; text-shadow: 0 0 6px #000; pointer-events: none; }
+#msg { position: absolute; top: 34%; left: 50%; transform: translateX(-50%); color: #fff; font-size: 34px; z-index: 10; text-shadow: 0 0 8px #000; pointer-events: none; text-align: center; font-weight: bold; }
+#minimap { position: absolute; top: 12px; right: 12px; z-index: 10; border: 2px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.55); image-rendering: pixelated; display: none; box-shadow: 0 0 12px rgba(0,0,0,0.6); }
+#minimap-label { position: absolute; top: 12px; right: 12px; z-index: 9; color: rgba(255,255,255,0.5); font-size: 11px; display: none; transform: translateY(-18px); }
+#start { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; cursor: pointer; }
+#start h1 { margin: 0 0 12px 0; font-size: 36px; }
+#start p { margin: 4px; font-size: 14px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div class="hud-row">
+    <div class="hp">
+      <div class="hp-top"><span>HP</span><span id="hud-hpnum">100</span></div>
+      <div class="hpbar-outer"><div id="hud-hpbar"></div></div>
+    </div>
+    <div class="weapon">
+      <div class="wname" id="hud-wname">PISTOL</div>
+      <div class="ammo" id="hud-ammo">8 / 48</div>
+      <div class="slots">
+        <div class="slot active" id="hud-slot1">1</div>
+        <div class="slot" id="hud-slot2">2</div>
+      </div>
+    </div>
+    <div class="forces">
+      <div class="force">
+        <div class="lab">Q &middot; FORCE PUSH</div>
+        <div class="cdbar-outer"><div id="hud-pushbar"></div></div>
+        <div class="cd" id="hud-push">RDY</div>
+      </div>
+      <div class="force">
+        <div class="lab">E &middot; FORCE LIGHTNING</div>
+        <div class="cdbar-outer"><div id="hud-lightbar"></div></div>
+        <div class="cd" id="hud-light">RDY</div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-row">
+    <div id="hud-run">RUN</div>
+    <div class="stats">
+      <div class="stat">KILLS <span class="val" id="hud-kills">0</span></div>
+      <div class="stat">LEFT <span class="val" id="hud-left">0</span></div>
+    </div>
+  </div>
+</div>
+<div id="crosshair">+</div>
+<div id="msg"></div>
+<canvas id="minimap"></canvas>
+<div id="start">
+<h1>MAZE SHOOTER</h1>
+<p>WASD - move (always running) &nbsp; MOUSE - look &nbsp; LMB - shoot &nbsp; R - reload</p>
+<p>1/2 - weapons &nbsp; Q - force push &nbsp; E - force lightning &nbsp; ESC - pause</p>
+<p>Minimap is always on (top-right)</p>
+<p>Green stalkers shoot &middot; Orange gunners force-push</p>
+<p>Start with the pistol. Find the hidden MACHINE GUN on the map to unlock it -</p>
+<p>the horde DOUBLES and red brutes (push + lightning) join the fight.</p>
+<p>Survive the maze. Kill all monsters.</p>
+</div>
+
+<script>
+window.__difficulty = 'PUPSIK';
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="maze.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
